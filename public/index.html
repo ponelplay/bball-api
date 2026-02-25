@@ -403,7 +403,8 @@ const ENDPOINTS = [
     desc: "All season games",
     params: [
       { key: "season", default: "2025", placeholder: "2025" },
-      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "code", default: "E", placeholder: "E, U, J" },
+      { key: "seasonCode", default: "", placeholder: "JA25 (NextGen)" },
     ],
   },
   {
@@ -411,7 +412,8 @@ const ENDPOINTS = [
     desc: "Single game",
     params: [
       { key: "season", default: "2025", placeholder: "2025" },
-      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "code", default: "E", placeholder: "E, U, J" },
+      { key: "seasonCode", default: "", placeholder: "JA25 (NextGen)" },
       { key: "gameNumber", default: "", placeholder: "1, 2, 3...", required: true },
     ],
   },
@@ -420,7 +422,8 @@ const ENDPOINTS = [
     desc: "Box score",
     params: [
       { key: "season", default: "2025", placeholder: "2025" },
-      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "code", default: "E", placeholder: "E, U, J" },
+      { key: "seasonCode", default: "", placeholder: "JA25 (NextGen)" },
       { key: "gameNumber", default: "", placeholder: "Required", required: true },
     ],
   },
@@ -429,7 +432,8 @@ const ENDPOINTS = [
     desc: "Play-by-play",
     params: [
       { key: "season", default: "2025", placeholder: "2025" },
-      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "code", default: "E", placeholder: "E, U, J" },
+      { key: "seasonCode", default: "", placeholder: "JA25 (NextGen)" },
       { key: "gameNumber", default: "", placeholder: "Required", required: true },
     ],
   },
@@ -438,7 +442,8 @@ const ENDPOINTS = [
     desc: "Standings",
     params: [
       { key: "season", default: "2025", placeholder: "2025" },
-      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "code", default: "E", placeholder: "E, U, J" },
+      { key: "seasonCode", default: "", placeholder: "JA25 (NextGen)" },
     ],
   },
   {
@@ -446,7 +451,8 @@ const ENDPOINTS = [
     desc: "Round data",
     params: [
       { key: "season", default: "2025", placeholder: "2025" },
-      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "code", default: "E", placeholder: "E, U, J" },
+      { key: "seasonCode", default: "", placeholder: "JA25 (NextGen)" },
       { key: "round", default: "", placeholder: "Optional" },
     ],
   },
@@ -454,7 +460,8 @@ const ENDPOINTS = [
     path: "/api/player",
     desc: "Player data",
     params: [
-      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "code", default: "E", placeholder: "E, U, J" },
+      { key: "seasonCode", default: "", placeholder: "JA25 (NextGen)" },
       { key: "personCode", default: "", placeholder: "Required", required: true },
       { key: "season", default: "", placeholder: "Optional" },
       { key: "stats", default: "", placeholder: "true/false" },

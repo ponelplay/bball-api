@@ -15,19 +15,19 @@ import {
   euroFetch,
   cache,
   getParams,
-  buildSeasonCode,
+  getSeasonCode,
 } from "./utils.js";
 
-const CACHE_TTL = 300; // 5 min — full game list doesn't change often
+const CACHE_TTL = 300;
 
 export default async (req) => {
   const corsRes = handleCors(req);
   if (corsRes) return corsRes;
 
   try {
-    const { season = "2025", code = "E" } = getParams(req);
-
-    const seasonCode = buildSeasonCode(code, season);
+    const params = getParams(req);
+    const { code = "E" } = params;
+    const seasonCode = getSeasonCode(params);
     const cacheKey = `games:${seasonCode}`;
     const cached = cache.get(cacheKey);
     if (cached) {
@@ -43,7 +43,7 @@ export default async (req) => {
       _meta: {
         source: "bball-api",
         cachedAt: new Date().toISOString(),
-        params: { season, code, seasonCode },
+        params: { code, seasonCode },
       },
     };
 

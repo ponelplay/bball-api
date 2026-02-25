@@ -40,11 +40,22 @@ export function handleCors(req) {
 
 // ============================================================
 // BUILD SEASON CODE
-// EuroLeague uses format like "E2025" or "U2025"
-// (competition code + year)
+// Standard: "E2025", "U2025" (code + year)
+// NextGen:  "JA25" (Abu Dhabi), "JU25", "JBO25" (Bologna), "JB25" (Belgrade)
+//
+// If seasonCode param is passed directly, it takes priority.
+// Otherwise, builds from code + season.
 // ============================================================
-export function buildSeasonCode(code = "E", season = "2025") {
+export function buildSeasonCode(code = "E", season = "2025", seasonCodeOverride = null) {
+  if (seasonCodeOverride) return seasonCodeOverride;
   return `${code.toUpperCase()}${season}`;
+}
+
+// Helper: extract season code from request params
+// Checks for direct seasonCode override first, then builds from code+season
+export function getSeasonCode(params) {
+  const { code = "E", season = "2025", seasonCode } = params;
+  return buildSeasonCode(code, season, seasonCode || null);
 }
 
 // ============================================================
