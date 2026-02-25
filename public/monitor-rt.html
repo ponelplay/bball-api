@@ -194,7 +194,7 @@
 </div>
 
 <!-- Supabase JS — CDN loads window.supabase global -->
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <script>
 // ============================================================
@@ -284,7 +284,8 @@
       .then(function(res) { return res.json(); })
       .then(function(data) {
         if (data.success) {
-          var msg = "Synced <span class='hl'>" + (data.gamesUpserted || data.games?.upserted || "?") + "</span> games";
+          var count = data.gamesUpserted || data.gamesFound || 0;
+          var msg = "Synced <span class='hl'>" + count + "</span> games";
           if (data.boxscores && data.boxscores !== "skipped") {
             msg += " + <span class='hl'>" + (data.boxscores.playersUpserted || 0) + "</span> player stats";
           }
