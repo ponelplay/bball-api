@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>bball-api — Basketball Data API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --text: #e0e0e8;
+      --muted: #6b6b80;
+      --accent: #10b981;
+      --accent-dim: #10b98133;
+      --blue: #3b82f6;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+    }
+    
+    /* Header */
+    .header {
+      margin-bottom: 3rem;
+    }
+    
+    .header-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.5rem;
+    }
+    
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.25rem;
+    }
+    
+    .header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    
+    /* Status bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      font-size: 0.8rem;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    
+    .status-dot.error { background: var(--red); }
+    .status-dot.loading { background: var(--orange); }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    
+    .status-text { color: var(--muted); }
+    .status-text strong { color: var(--text); }
+    
+    /* Endpoint cards */
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+    
+    .endpoints {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+    }
+    
+    .endpoint {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    
+    .endpoint:hover {
+      border-color: var(--accent-dim);
+      background: #14142a;
+    }
+    
+    .endpoint.active {
+      border-color: var(--accent);
+      background: #0d1f1a;
+    }
+    
+    .method {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    
+    .endpoint-path {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+    
+    .endpoint-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: right;
+    }
+    
+    /* Tester panel */
+    .tester {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+    
+    .tester-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .tester-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .tester-body {
+      padding: 1.25rem;
+    }
+    
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    .param-group label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    
+    .param-group input, .param-group select {
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    
+    .param-group input:focus, .param-group select:focus {
+      border-color: var(--accent);
+    }
+    
+    .param-group input::placeholder {
+      color: #3a3a50;
+    }
+    
+    .url-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+    
+    .url-bar code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    
+    .url-bar code .path { color: var(--accent); }
+    .url-bar code .param-key { color: var(--blue); }
+    .url-bar code .param-val { color: var(--orange); }
+    
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .btn {
+      padding: 0.55rem 1.25rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--sans);
+      transition: opacity 0.15s;
+    }
+    
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.98); }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    /* Response area */
+    .response-area {
+      margin-top: 1rem;
+    }
+    
+    .response-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    
+    .response-status {
+      font-family: var(--mono);
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+    }
+    
+    .response-status.ok { background: #10b98122; color: var(--accent); }
+    .response-status.err { background: #ef444422; color: var(--red); }
+    
+    .response-output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 400px;
+      overflow: auto;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .hidden { display: none; }
+    
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: #333348;
+    }
+    
+    /* Mobile */
+    @media (max-width: 640px) {
+      .container { padding: 1.5rem 1rem; }
+      .endpoint { grid-template-columns: auto 1fr; }
+      .endpoint-desc { display: none; }
+      .param-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-label">basketball data api</div>
+      <h1>bball-api</h1>
+      <p>Proxy layer for EuroLeague data — cached, enriched, consistent.</p>
+    </div>
+    
+    <!-- Status -->
+    <div class="status-bar" id="statusBar">
+      <div class="status-dot loading" id="statusDot"></div>
+      <span class="status-text" id="statusText">Checking API status...</span>
+    </div>
+    
+    <!-- Endpoints -->
+    <div class="section-title">Endpoints</div>
+    <div class="endpoints" id="endpointList"></div>
+    
+    <!-- Tester -->
+    <div class="tester">
+      <div class="tester-header">
+        <span class="tester-title" id="testerTitle">Select an endpoint to test</span>
+      </div>
+      <div class="tester-body">
+        <div class="param-grid" id="paramGrid"></div>
+        <div class="url-bar" id="urlBar">
+          <code><span class="path">/api/health</span></code>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="sendBtn" onclick="sendRequest()">
+            Send Request
+          </button>
+          <button class="btn btn-secondary" onclick="copyUrl()">
+            Copy URL
+          </button>
+        </div>
+        <div class="response-area hidden" id="responseArea">
+          <div class="response-bar">
+            <span class="response-status" id="responseStatus"></span>
+            <span id="responseTime"></span>
+            <span id="responseCacheStatus"></span>
+          </div>
+          <div class="response-output" id="responseOutput"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      bball-api v1.0 — Built on Netlify Functions
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// API TESTER — Interactive endpoint explorer
+// ============================================================
+
+const BASE = window.location.origin;
+
+const ENDPOINTS = [
+  {
+    path: "/api/health",
+    desc: "API status",
+    params: [],
+  },
+  {
+    path: "/api/game",
+    desc: "Game data",
+    params: [
+      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "gameNumber", default: "", placeholder: "1, 2, 3...", required: true },
+    ],
+  },
+  {
+    path: "/api/boxscore",
+    desc: "Box score",
+    params: [
+      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "gameNumber", default: "", placeholder: "Required", required: true },
+    ],
+  },
+  {
+    path: "/api/pbp",
+    desc: "Play-by-play",
+    params: [
+      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "gameNumber", default: "", placeholder: "Required", required: true },
+    ],
+  },
+  {
+    path: "/api/standings",
+    desc: "Standings",
+    params: [
+      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "code", default: "E", placeholder: "E or U" },
+    ],
+  },
+  {
+    path: "/api/rounds",
+    desc: "Round data",
+    params: [
+      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "round", default: "", placeholder: "Optional" },
+    ],
+  },
+  {
+    path: "/api/player",
+    desc: "Player data",
+    params: [
+      { key: "code", default: "E", placeholder: "E or U" },
+      { key: "personCode", default: "", placeholder: "Required", required: true },
+      { key: "season", default: "", placeholder: "Optional" },
+      { key: "stats", default: "", placeholder: "true/false" },
+    ],
+  },
+];
+
+let activeEndpoint = ENDPOINTS[0];
+
+// Render endpoint list
+function renderEndpoints() {
+  const list = document.getElementById("endpointList");
+  list.innerHTML = ENDPOINTS.map((ep, i) => `
+    <div class="endpoint ${i === 0 ? 'active' : ''}" data-index="${i}" onclick="selectEndpoint(${i})">
+      <span class="method">GET</span>
+      <span class="endpoint-path">${ep.path}</span>
+      <span class="endpoint-desc">${ep.desc}</span>
+    </div>
+  `).join("");
+}
+
+// Select endpoint
+function selectEndpoint(index) {
+  activeEndpoint = ENDPOINTS[index];
+  
+  // Update active state
+  document.querySelectorAll(".endpoint").forEach((el, i) => {
+    el.classList.toggle("active", i === index);
+  });
+  
+  // Update title
+  document.getElementById("testerTitle").textContent = `${activeEndpoint.desc} — ${activeEndpoint.path}`;
+  
+  // Render params
+  const grid = document.getElementById("paramGrid");
+  if (activeEndpoint.params.length === 0) {
+    grid.innerHTML = '<span style="color: var(--muted); font-size: 0.8rem;">No parameters</span>';
+  } else {
+    grid.innerHTML = activeEndpoint.params.map(p => `
+      <div class="param-group">
+        <label>${p.key}${p.required ? ' *' : ''}</label>
+        <input 
+          type="text" 
+          id="param-${p.key}" 
+          value="${p.default}" 
+          placeholder="${p.placeholder}"
+          oninput="updateUrl()"
+        >
+      </div>
+    `).join("");
+  }
+  
+  updateUrl();
+  document.getElementById("responseArea").classList.add("hidden");
+}
+
+// Update URL preview
+function updateUrl() {
+  const params = activeEndpoint.params
+    .map(p => {
+      const val = document.getElementById(`param-${p.key}`)?.value || "";
+      return val ? `${p.key}=${encodeURIComponent(val)}` : null;
+    })
+    .filter(Boolean)
+    .join("&");
+  
+  const queryString = params ? `?${params}` : "";
+  const urlBar = document.getElementById("urlBar");
+  
+  // Color-coded URL
+  const parts = queryString
+    ? queryString.slice(1).split("&").map(p => {
+        const [k, v] = p.split("=");
+        return `<span class="param-key">${k}</span>=<span class="param-val">${decodeURIComponent(v)}</span>`;
+      }).join("&amp;")
+    : "";
+  
+  urlBar.innerHTML = `<code><span class="path">${activeEndpoint.path}</span>${parts ? '?' + parts : ''}</code>`;
+}
+
+function getFullUrl() {
+  const params = activeEndpoint.params
+    .map(p => {
+      const val = document.getElementById(`param-${p.key}`)?.value || "";
+      return val ? `${p.key}=${encodeURIComponent(val)}` : null;
+    })
+    .filter(Boolean)
+    .join("&");
+  
+  return `${BASE}${activeEndpoint.path}${params ? '?' + params : ''}`;
+}
+
+// Send request
+async function sendRequest() {
+  const btn = document.getElementById("sendBtn");
+  const area = document.getElementById("responseArea");
+  const output = document.getElementById("responseOutput");
+  const statusEl = document.getElementById("responseStatus");
+  const timeEl = document.getElementById("responseTime");
+  const cacheEl = document.getElementById("responseCacheStatus");
+  
+  btn.textContent = "Loading...";
+  btn.disabled = true;
+  area.classList.remove("hidden");
+  output.textContent = "Fetching...";
+  
+  const url = getFullUrl();
+  const start = performance.now();
+  
+  try {
+    const res = await fetch(url);
+    const elapsed = Math.round(performance.now() - start);
+    const data = await res.json();
+    
+    statusEl.textContent = `${res.status} ${res.statusText}`;
+    statusEl.className = `response-status ${res.ok ? 'ok' : 'err'}`;
+    timeEl.textContent = `${elapsed}ms`;
+    cacheEl.textContent = res.headers.get("X-Cache") ? `Cache: ${res.headers.get("X-Cache")}` : "";
+    output.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    statusEl.textContent = "ERROR";
+    statusEl.className = "response-status err";
+    timeEl.textContent = "";
+    cacheEl.textContent = "";
+    output.textContent = `Request failed: ${err.message}`;
+  }
+  
+  btn.textContent = "Send Request";
+  btn.disabled = false;
+}
+
+// Copy URL
+function copyUrl() {
+  navigator.clipboard.writeText(getFullUrl()).then(() => {
+    const btn = event.target;
+    btn.textContent = "Copied";
+    setTimeout(() => btn.textContent = "Copy URL", 1500);
+  });
+}
+
+// Check health on load
+async function checkHealth() {
+  const dot = document.getElementById("statusDot");
+  const text = document.getElementById("statusText");
+  
+  try {
+    const res = await fetch(`${BASE}/api/health`);
+    const data = await res.json();
+    
+    if (data.status === "ok") {
+      dot.className = "status-dot";
+      text.innerHTML = `<strong>Online</strong> — ${data.endpoints.length} endpoints available — Cache: ${data.cache.entries} entries`;
+    } else {
+      throw new Error("Not ok");
+    }
+  } catch {
+    dot.className = "status-dot error";
+    text.innerHTML = "<strong>Offline</strong> — API not responding. Deploy to Netlify first.";
+  }
+}
+
+// Init
+renderEndpoints();
+selectEndpoint(0);
+checkHealth();
+</script>
+</body>
+</html>

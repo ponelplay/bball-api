@@ -1,0 +1,12 @@
+{
+  "name": "bball-api",
+  "version": "1.0.0",
+  "description": "Marc's Basketball Data API — Netlify Functions proxy for EuroLeague data",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}

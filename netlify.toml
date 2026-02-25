@@ -1,0 +1,14 @@
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+
+# Clean API URLs: /api/game → /.netlify/functions/game
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+# CORS headers for all functions
+[functions]
+  node_bundler = "esbuild"
