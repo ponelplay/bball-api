@@ -228,6 +228,7 @@ export default async (req) => {
     const seasonCode = getSeasonCode(params);
     const serviceKey = getSupabaseKey();
     const doBoxscores = skipBoxscores !== "true" && skipBoxscores !== "1";
+    const maxBoxscores = parseInt(params.maxBoxscores) || 15; // default: 15 games max to avoid timeout
     
     // STEP 1: Fetch all games
     const gamesData = await euroFetch(
@@ -245,20 +246,33 @@ export default async (req) => {
     }
     
     // STEP 2: Upsert games to Supabase
-    // on_conflict tells PostgREST to merge on the unique constraint columns
     const gameRows = gamesList.map(g => transformGame(g, seasonCode, code.toUpperCase()));
     const gamesResult = await supabaseUpsert("live_games", gameRows, serviceKey, "season_code,game_code");
     
-    // STEP 3: Fetch boxscores for live/finished games
-    let boxscoreStats = { fetched: 0, players: 0, errors: [] };
+    // STEP 3: Fetch stats for live/finished games (capped to avoid Netlify 10s timeout)
+    let boxscoreStats = { fetched: 0, players: 0, errors: [], capped: false };
     
     if (doBoxscores) {
-      const eligibleGames = gamesList.filter(g => 
+      let eligibleGames = gamesList.filter(g => 
         g.played === true || 
         g.gameStatus === "Played" || 
         g.gameStatus === "Live" || 
         g.gameStatus === "Playing"
       );
+      
+      // Prioritize: live first, then most recent played
+      eligibleGames.sort((a, b) => {
+        const aLive = a.gameStatus === "Live" || a.gameStatus === "Playing" ? 0 : 1;
+        const bLive = b.gameStatus === "Live" || b.gameStatus === "Playing" ? 0 : 1;
+        if (aLive !== bLive) return aLive - bLive;
+        return b.gameCode - a.gameCode; // newest first
+      });
+      
+      const totalEligible = eligibleGames.length;
+      if (eligibleGames.length > maxBoxscores) {
+        eligibleGames = eligibleGames.slice(0, maxBoxscores);
+        boxscoreStats.capped = true;
+      }
       
       const concurrency = 5;
       let allPlayerRows = [];
@@ -318,6 +332,7 @@ export default async (req) => {
         eligible: gamesList.filter(g => g.played || g.gameStatus === "Live" || g.gameStatus === "Playing").length,
         fetched: boxscoreStats.fetched,
         playersUpserted: boxscoreStats.players,
+        capped: boxscoreStats.capped ? maxBoxscores + " (use maxBoxscores=N or games=1,2,3 for more)" : undefined,
         errors: boxscoreStats.errors.length > 0 ? boxscoreStats.errors.slice(0, 5) : undefined,
       } : "skipped",
       errors: gamesResult.errors?.length > 0 ? gamesResult.errors.slice(0, 5) : undefined,
