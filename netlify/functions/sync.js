@@ -113,22 +113,28 @@ function transformGame(game, seasonCode, competition) {
 }
 
 // ============================================================
-// TRANSFORM: Boxscore player → player_stats row
+// TRANSFORM: Stats API player → player_stats row
 // ============================================================
-function parseMinutes(minStr) {
-  if (!minStr || typeof minStr !== "string") return 0;
-  const parts = minStr.split(":");
-  if (parts.length === 2) {
-    return parseFloat(parts[0]) + parseFloat(parts[1]) / 60;
-  }
-  return parseFloat(minStr) || 0;
-}
+// The EuroLeague /stats endpoint returns:
+//   local.players[]: { player: { person: {code,name,alias}, dorsal, position, club }, stats: { points, timePlayed, ... } }
+// We flatten this into a single row for Supabase.
+// ============================================================
 
-function transformPlayerStats(player, gameInfo, teamInfo, isLocal) {
-  const fgm2 = player.fieldGoalsMade2 ?? 0;
-  const fga2 = player.fieldGoalsAttempted2 ?? 0;
-  const fgm3 = player.fieldGoalsMade3 ?? 0;
-  const fga3 = player.fieldGoalsAttempted3 ?? 0;
+function transformPlayerStats(entry, gameInfo, teamCode, teamName, teamTvCode, isLocal) {
+  const p = entry.player || {};
+  const s = entry.stats || {};
+  const person = p.person || {};
+
+  const fgm2 = s.fieldGoalsMade2 ?? 0;
+  const fga2 = s.fieldGoalsAttempted2 ?? 0;
+  const fgm3 = s.fieldGoalsMade3 ?? 0;
+  const fga3 = s.fieldGoalsAttempted3 ?? 0;
+  const timePlayed = s.timePlayed ?? 0;
+
+  // timePlayed is decimal minutes (e.g. 25.5 = 25:30)
+  const mins = Math.floor(timePlayed);
+  const secs = Math.round((timePlayed - mins) * 60);
+  const minutesStr = timePlayed > 0 ? (mins + ":" + (secs < 10 ? "0" : "") + secs) : "DNP";
 
   return {
     game_code:              gameInfo.gameCode,
@@ -136,72 +142,74 @@ function transformPlayerStats(player, gameInfo, teamInfo, isLocal) {
     competition:            gameInfo.competition,
     round:                  gameInfo.round || null,
     game_date:              gameInfo.gameDate || null,
-    team_code:              teamInfo.code || null,
-    team_name:              teamInfo.name || null,
-    team_tv_code:           teamInfo.tvCode || null,
+    team_code:              teamCode,
+    team_name:              teamName,
+    team_tv_code:           teamTvCode,
     is_local:               isLocal,
-    person_code:            player.personCode || player.code || null,
-    player_name:            player.name || null,
-    player_alias:           player.alias || null,
-    dorsal:                 player.dorsal || null,
-    position:               player.position || null,
-    is_starter:             player.isStarter ?? false,
-    minutes:                player.minutes || player.timePlayed || null,
-    minutes_decimal:        parseMinutes(player.minutes || player.timePlayed),
-    points:                 player.score ?? player.points ?? 0,
+    person_code:            person.code || null,
+    player_name:            person.name || null,
+    player_alias:           person.alias || null,
+    dorsal:                 p.dorsal || s.dorsal?.toString() || null,
+    position:               p.positionName || (p.position ? String(p.position) : null),
+    is_starter:             s.startFive === true || s.startFive2 === true,
+    minutes:                minutesStr,
+    minutes_decimal:        timePlayed,
+    points:                 s.points ?? 0,
     field_goals_made:       fgm2 + fgm3,
     field_goals_attempted:  fga2 + fga3,
     two_points_made:        fgm2,
     two_points_attempted:   fga2,
     three_points_made:      fgm3,
     three_points_attempted: fga3,
-    free_throws_made:       player.freeThrowsMade ?? 0,
-    free_throws_attempted:  player.freeThrowsAttempted ?? 0,
-    offensive_rebounds:     player.offensiveRebounds ?? 0,
-    defensive_rebounds:     player.defensiveRebounds ?? 0,
-    total_rebounds:         player.totalRebounds ?? (player.offensiveRebounds ?? 0) + (player.defensiveRebounds ?? 0),
-    assists:                player.assists ?? player.assistances ?? 0,
-    turnovers:              player.turnovers ?? 0,
-    steals:                 player.steals ?? 0,
-    blocks_favour:          player.blocksFavour ?? player.blocks ?? 0,
-    blocks_against:         player.blocksAgainst ?? 0,
-    fouls_committed:        player.foulsCommitted ?? 0,
-    fouls_received:         player.foulsReceived ?? 0,
-    pir:                    player.valuation ?? player.pir ?? 0,
-    plus_minus:             player.plusMinus ?? 0,
-    raw_data:               player,
+    free_throws_made:       s.freeThrowsMade ?? 0,
+    free_throws_attempted:  s.freeThrowsAttempted ?? 0,
+    offensive_rebounds:     s.offensiveRebounds ?? 0,
+    defensive_rebounds:     s.defensiveRebounds ?? 0,
+    total_rebounds:         s.totalRebounds ?? (s.offensiveRebounds ?? 0) + (s.defensiveRebounds ?? 0),
+    assists:                s.assistances ?? 0,
+    turnovers:              s.turnovers ?? 0,
+    steals:                 s.steals ?? 0,
+    blocks_favour:          s.blocksFavour ?? 0,
+    blocks_against:         s.blocksAgainst ?? 0,
+    fouls_committed:        s.foulsCommited ?? 0,  // typo in API: "Commited"
+    fouls_received:         s.foulsReceived ?? 0,
+    pir:                    s.valuation ?? 0,
+    plus_minus:             s.plusMinus ?? 0,
+    raw_data:               entry,
     synced_at:              new Date().toISOString(),
   };
 }
 
 // ============================================================
-// EXTRACT PLAYERS FROM BOXSCORE RESPONSE
+// EXTRACT PLAYERS FROM /stats RESPONSE
+// Structure: { local: { players: [{player, stats}], team, coach }, road: { ... } }
 // ============================================================
-function extractPlayers(boxscore, gameCode, seasonCode, competition, round, gameDate) {
+function extractPlayers(statsData, gameCode, seasonCode, competition, round, gameDate) {
   const players = [];
   const gameInfo = { gameCode, seasonCode, competition, round, gameDate };
-  const data = boxscore?.stats || boxscore;
-  
-  const localPlayers = data?.local?.players || data?.local?.playersStats || [];
-  const localTeam = {
-    code: data?.local?.club?.code || data?.local?.team?.code,
-    name: data?.local?.club?.editorialName || data?.local?.team?.name,
-    tvCode: data?.local?.club?.tvCode || data?.local?.team?.tvCode,
-  };
-  for (const p of localPlayers) {
-    if (p.personCode || p.code) players.push(transformPlayerStats(p, gameInfo, localTeam, true));
+
+  for (const side of ["local", "road"]) {
+    const sideData = statsData?.[side];
+    if (!sideData?.players) continue;
+
+    const isLocal = side === "local";
+    // Get team info from the first player's club, or from team obj
+    const teamObj = sideData.team || {};
+    const firstClub = sideData.players[0]?.player?.club || {};
+    const teamCode = firstClub.code || teamObj.code || null;
+    const teamName = firstClub.editorialName || firstClub.abbreviatedName || teamObj.name || null;
+    const teamTvCode = firstClub.tvCode || teamObj.tvCode || null;
+
+    for (const entry of sideData.players) {
+      const personCode = entry.player?.person?.code;
+      if (!personCode) continue; // skip entries without a player code
+      // Skip coaches (type "C") — only include players (type "J")
+      if (entry.player?.type && entry.player.type !== "J") continue;
+
+      players.push(transformPlayerStats(entry, gameInfo, teamCode, teamName, teamTvCode, isLocal));
+    }
   }
-  
-  const roadPlayers = data?.road?.players || data?.road?.playersStats || [];
-  const roadTeam = {
-    code: data?.road?.club?.code || data?.road?.team?.code,
-    name: data?.road?.club?.editorialName || data?.road?.team?.name,
-    tvCode: data?.road?.club?.tvCode || data?.road?.team?.tvCode,
-  };
-  for (const p of roadPlayers) {
-    if (p.personCode || p.code) players.push(transformPlayerStats(p, gameInfo, roadTeam, false));
-  }
-  
+
   return players;
 }
 
@@ -262,7 +270,7 @@ export default async (req) => {
           batch.map(async (game) => {
             try {
               const bs = await euroFetch(
-                `/competitions/${code.toUpperCase()}/seasons/${seasonCode}/games/${game.gameCode}/boxscore`
+                `/competitions/${code.toUpperCase()}/seasons/${seasonCode}/games/${game.gameCode}/stats`
               );
               return { gameCode: game.gameCode, boxscore: bs, game };
             } catch (err) {

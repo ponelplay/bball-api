@@ -454,7 +454,21 @@
   // ============================================================
   function renderGames(changedGameCode) {
     var grid = document.getElementById("gameGrid");
-    var games = Object.values(gameData).sort(function(a, b) { return a.game_code - b.game_code; });
+    var games = Object.values(gameData).sort(function(a, b) {
+      // Priority: 1=Live, 2=Played, 3=Upcoming
+      function priority(g) {
+        var s = g.game_status;
+        if (s === "Live" || s === "Playing") return 1;
+        if (g.played || s === "Played") return 2;
+        return 3;
+      }
+      var pa = priority(a), pb = priority(b);
+      if (pa !== pb) return pa - pb;
+      // Within same priority: played = newest first, upcoming = soonest first
+      if (pa === 2) return b.game_code - a.game_code;
+      if (pa === 3) return a.game_code - b.game_code;
+      return a.game_code - b.game_code;
+    });
 
     if (games.length === 0) {
       grid.innerHTML = '<div class="empty-state"><p>No games loaded. Click Sync first.</p></div>';
