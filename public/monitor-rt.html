@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live Monitor RT — bball-api + Supabase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -13,16 +14,16 @@
       --blue: #3b82f6; --orange: #f59e0b; --red: #ef4444;
       --purple: #8b5cf6;
       --mono: 'SF Mono','Cascadia Code','Fira Code','Consolas',monospace;
-      --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      --sans: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
     }
     body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
-    
+
     .header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.5rem; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:100; }
     .header-left { display:flex; align-items:center; gap:1rem; }
     .header-title { font-size:0.95rem; font-weight:700; color:#fff; }
     .header-subtitle { font-size:0.65rem; color:var(--purple); font-family:var(--mono); }
     .header-right { display:flex; align-items:center; gap:0.75rem; }
-    
+
     .ws-badge { display:flex; align-items:center; gap:0.4rem; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:0.3rem 0.65rem; border-radius:6px; }
     .ws-badge.connected { background:rgba(16,185,129,0.15); color:var(--accent); }
     .ws-badge.disconnected { background:rgba(239,68,68,0.15); color:var(--red); }
@@ -32,29 +33,28 @@
     .ws-badge.disconnected .ws-dot { background:var(--red); }
     .ws-badge.connecting .ws-dot { background:var(--purple); animation:pulse 0.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.8)} }
-    
+
     .config-bar { display:flex; align-items:center; gap:1rem; padding:0.75rem 1.5rem; background:var(--surface); border-bottom:1px solid var(--border); flex-wrap:wrap; }
     .config-group { display:flex; align-items:center; gap:0.4rem; }
     .config-group label { font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
     .config-group input,.config-group select { padding:0.35rem 0.6rem; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:var(--mono); font-size:0.75rem; outline:none; }
     .config-group input:focus,.config-group select:focus { border-color:var(--accent); }
     .config-spacer { flex:1; }
-    
+
     .btn { padding:0.4rem 0.85rem; border:none; border-radius:5px; font-size:0.7rem; font-weight:600; cursor:pointer; font-family:var(--sans); transition:all 0.15s; }
     .btn:hover { opacity:0.85; }
     .btn-go { background:var(--accent); color:#000; }
     .btn-stop { background:var(--red); color:#fff; }
     .btn-sync { background:var(--purple); color:#fff; }
-    .btn-secondary { background:var(--border); color:var(--text); }
-    
+
     .stats-bar { display:flex; gap:1.5rem; padding:0.75rem 1.5rem; border-bottom:1px solid var(--border); background:var(--surface); font-size:0.65rem; flex-wrap:wrap; }
     .stat-item { display:flex; align-items:center; gap:0.35rem; }
     .stat-label { color:var(--muted); }
     .stat-value { color:var(--text); font-weight:600; font-family:var(--mono); }
-    
+
     .main { padding:1.5rem; max-width:1200px; margin:0 auto; }
     .game-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
-    
+
     .game-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; transition:border-color 0.5s,box-shadow 0.5s; }
     .game-card.changed { border-color:var(--accent); box-shadow:0 0 25px rgba(16,185,129,0.15); }
     .game-card.live { border-color:rgba(239,68,68,0.3); }
@@ -75,14 +75,14 @@
     .team-score.flash { color:var(--accent); text-shadow:0 0 15px rgba(16,185,129,0.4); }
     .team-score.winning { color:#fff; }
     .team-score.losing { color:var(--muted); }
-    
+
     .quarter-scores { display:flex; gap:0.25rem; padding:0.6rem 1rem; border-top:1px solid var(--border); background:rgba(0,0,0,0.15); }
     .q-score { flex:1; text-align:center; font-family:var(--mono); font-size:0.6rem; }
     .q-label { color:var(--muted); display:block; margin-bottom:0.2rem; }
     .q-val { color:var(--text); }
-    
+
     .venue-bar { padding:0.4rem 1rem; font-size:0.6rem; color:var(--muted); border-top:1px solid var(--border); background:rgba(0,0,0,0.1); }
-    
+
     .event-log { margin-top:1.5rem; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
     .event-log-header { display:flex; align-items:center; justify-content:space-between; padding:0.65rem 1rem; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.2); }
     .event-log-title { font-size:0.75rem; font-weight:600; }
@@ -102,18 +102,16 @@
     .event-text { font-size:0.75rem; color:var(--text); line-height:1.4; }
     .event-text .hl { color:var(--accent); font-weight:600; }
     .event-text .rt { color:var(--purple); font-weight:600; }
-    
+
     .empty-state { text-align:center; padding:4rem 2rem; color:var(--muted); }
     .empty-state h3 { font-size:1rem; color:var(--text); margin-bottom:0.5rem; }
     .empty-state p { font-size:0.8rem; max-width:450px; margin:0 auto; line-height:1.6; }
-    
+
     .sound-toggle { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:0.35rem 0.55rem; cursor:pointer; color:var(--muted); font-size:0.75rem; transition:all 0.15s; }
     .sound-toggle.active { border-color:var(--accent); color:var(--accent); }
-    
-    .mode-label { font-size:0.55rem; padding:0.2rem 0.5rem; border-radius:3px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
-    .mode-label.ws { background:rgba(139,92,246,0.15); color:var(--purple); }
-    .mode-label.poll { background:rgba(245,158,11,0.15); color:var(--orange); }
-    
+
+    .mode-label { font-size:0.55rem; padding:0.2rem 0.5rem; border-radius:3px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; background:rgba(139,92,246,0.15); color:var(--purple); }
+
     @media (max-width:640px) {
       .config-bar { padding:0.5rem 1rem; gap:0.5rem; }
       .main { padding:1rem; }
@@ -127,17 +125,16 @@
 <div class="header">
   <div class="header-left">
     <div>
-      <div class="header-title">Live Monitor <span class="mode-label ws" id="modeLabel">WebSocket</span></div>
+      <div class="header-title">Live Monitor <span class="mode-label">WebSocket</span></div>
       <div class="header-subtitle">Supabase Realtime</div>
     </div>
-    <div class="ws-badge connecting" id="wsBadge">
+    <div class="ws-badge disconnected" id="wsBadge">
       <div class="ws-dot"></div>
       <span id="wsBadgeText">Idle</span>
     </div>
   </div>
   <div class="header-right">
-    <span style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);" id="wsIndicator">—</span>
-    <button class="sound-toggle" id="soundToggle" onclick="toggleSound()" title="Sound alerts">
+    <button class="sound-toggle" id="soundToggle" title="Sound alerts">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
     </button>
   </div>
@@ -165,411 +162,384 @@
     <input type="text" id="cfgSeasonCode" value="" placeholder="JTA25" style="width:85px;">
   </div>
   <div class="config-spacer"></div>
-  <button class="btn btn-sync" id="syncBtn" onclick="syncGames()">Sync to Supabase</button>
-  <button class="btn btn-go" id="startBtn" onclick="startRealtime()">Connect</button>
-  <button class="btn btn-stop" id="stopBtn" onclick="stopRealtime()" style="display:none;">Disconnect</button>
+  <button class="btn btn-sync" id="syncBtn">Sync to Supabase</button>
+  <button class="btn btn-go" id="startBtn">Connect</button>
+  <button class="btn btn-stop" id="stopBtn" style="display:none;">Disconnect</button>
 </div>
 
 <div class="stats-bar">
-  <div class="stat-item">
-    <span class="stat-label">Games:</span>
-    <span class="stat-value" id="statGames">0</span>
-  </div>
-  <div class="stat-item">
-    <span class="stat-label">Live updates:</span>
-    <span class="stat-value" id="statUpdates">0</span>
-  </div>
-  <div class="stat-item">
-    <span class="stat-label">Score changes:</span>
-    <span class="stat-value" id="statScoreChanges">0</span>
-  </div>
-  <div class="stat-item">
-    <span class="stat-label">Last event:</span>
-    <span class="stat-value" id="statLastEvent">—</span>
-  </div>
-  <div class="stat-item">
-    <span class="stat-label">Connection:</span>
-    <span class="stat-value" id="statConnection">Idle</span>
-  </div>
+  <div class="stat-item"><span class="stat-label">Games:</span><span class="stat-value" id="statGames">0</span></div>
+  <div class="stat-item"><span class="stat-label">Live updates:</span><span class="stat-value" id="statUpdates">0</span></div>
+  <div class="stat-item"><span class="stat-label">Score changes:</span><span class="stat-value" id="statScoreChanges">0</span></div>
+  <div class="stat-item"><span class="stat-label">Last event:</span><span class="stat-value" id="statLastEvent">—</span></div>
+  <div class="stat-item"><span class="stat-label">Connection:</span><span class="stat-value" id="statConnection">Idle</span></div>
 </div>
 
 <div class="main">
   <div class="game-grid" id="gameGrid">
     <div class="empty-state">
       <h3>Supabase Realtime Monitor</h3>
-      <p>
-        1. Click <strong>Sync to Supabase</strong> to pull games from EuroLeague into your database.<br>
-        2. Click <strong>Connect</strong> to subscribe via WebSocket.<br>
-        3. Any changes in the database will appear here instantly — no polling needed.
-      </p>
+      <p>1. Click <strong>Sync to Supabase</strong> to pull games from EuroLeague into your database.<br>
+         2. Click <strong>Connect</strong> to subscribe via WebSocket.<br>
+         3. Any changes in the database appear here instantly.</p>
     </div>
   </div>
-  
   <div class="event-log">
     <div class="event-log-header">
       <span class="event-log-title">Realtime Event Log</span>
-      <button class="event-log-clear" onclick="clearLog()">Clear</button>
+      <button class="event-log-clear" id="clearLogBtn">Clear</button>
     </div>
-    <div class="event-list" id="eventList">
-      <div class="event-item">
-        <span class="event-time">—</span>
-        <div class="event-dot system"></div>
-        <span class="event-text">Ready. Sync games, then Connect to start receiving WebSocket updates.</span>
-      </div>
-    </div>
+    <div class="event-list" id="eventList"></div>
   </div>
 </div>
 
-<!-- Supabase JS Client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Supabase JS — CDN loads window.supabase global -->
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <script>
 // ============================================================
-// CONFIG
+// Wrap everything in an IIFE so nothing leaks to global scope
+// and we avoid the "Identifier 'supabase' already declared" error
 // ============================================================
-const SUPABASE_URL = "https://knthptmdwgzkpfopceku.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudGhwdG1kd2d6a3Bmb3BjZWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE0NjIsImV4cCI6MjA4NzU1NzQ2Mn0.HkpT1Fwoyqks5rMcEmtwkkbrZ_VxfOm0_woJ9Ipa40U";
+(function() {
+  "use strict";
 
-// Init Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var SUPABASE_URL = "https://knthptmdwgzkpfopceku.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudGhwdG1kd2d6a3Bmb3BjZWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODE0NjIsImV4cCI6MjA4NzU1NzQ2Mn0.HkpT1Fwoyqks5rMcEmtwkkbrZ_VxfOm0_woJ9Ipa40U";
 
-// State
-let channel = null;
-let gameData = {};  // keyed by game_code
-let stats = { updates: 0, scoreChanges: 0 };
-let soundEnabled = false;
-let audioCtx = null;
+  // Use "sbClient" to avoid collision with the window.supabase global
+  var sbClient = null;
+  var channel = null;
+  var gameData = {};
+  var appStats = { updates: 0, scoreChanges: 0 };
+  var soundEnabled = false;
+  var audioCtx = null;
 
-// ============================================================
-// AUDIO
-// ============================================================
-function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-function playAlert(type) {
-  if (!soundEnabled || !audioCtx) return;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.connect(g); g.connect(audioCtx.destination);
-  o.frequency.value = type === "score" ? 880 : 440;
-  g.gain.value = type === "score" ? 0.1 : 0.05;
-  o.start();
-  if (type === "score") o.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-  o.stop(audioCtx.currentTime + 0.3);
-}
-function toggleSound() { initAudio(); soundEnabled = !soundEnabled; document.getElementById("soundToggle").classList.toggle("active", soundEnabled); }
+  // ============================================================
+  // EVENT LOG
+  // ============================================================
+  function addLog(type, text) {
+    var list = document.getElementById("eventList");
+    var time = new Date().toLocaleTimeString();
+    var item = document.createElement("div");
+    item.className = "event-item";
+    item.innerHTML = '<span class="event-time">' + time + '</span><div class="event-dot ' + type + '"></div><span class="event-text">' + text + '</span>';
+    list.prepend(item);
+    while (list.children.length > 150) list.removeChild(list.lastChild);
+  }
 
-// ============================================================
-// CONFIG HELPERS
-// ============================================================
-function getApiBase() {
-  let base = document.getElementById("apiBase").value.trim();
-  if (!base) return null;
-  if (!base.startsWith("http")) base = "https://" + base;
-  if (base.endsWith("/")) base = base.slice(0, -1);
-  return base;
-}
+  // ============================================================
+  // AUDIO
+  // ============================================================
+  function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  function playAlert(type) {
+    if (!soundEnabled || !audioCtx) return;
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value = type === "score" ? 880 : 440;
+    g.gain.value = type === "score" ? 0.1 : 0.05;
+    o.start();
+    if (type === "score") o.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    o.stop(audioCtx.currentTime + 0.3);
+  }
 
-function getSeasonCode() {
-  const sc = document.getElementById("cfgSeasonCode").value.trim();
-  if (sc) return sc;
-  const code = document.getElementById("cfgCode").value;
-  const season = document.getElementById("cfgSeason").value.trim();
-  return code + season;
-}
+  // ============================================================
+  // CONFIG HELPERS
+  // ============================================================
+  function getApiBase() {
+    var base = document.getElementById("apiBase").value.trim();
+    if (!base) return null;
+    if (base.indexOf("http") !== 0) base = "https://" + base;
+    if (base.charAt(base.length - 1) === "/") base = base.slice(0, -1);
+    return base;
+  }
 
-// ============================================================
-// SYNC: Pull games from EuroLeague → Supabase via your API
-// ============================================================
-async function syncGames() {
-  const apiBase = getApiBase();
-  if (!apiBase) { addLog("system", "Enter your API URL first."); return; }
-  
-  const code = document.getElementById("cfgCode").value;
-  const seasonCode = getSeasonCode();
-  const btn = document.getElementById("syncBtn");
-  
-  btn.textContent = "Syncing...";
-  btn.disabled = true;
-  addLog("system", `Syncing ${seasonCode} from EuroLeague → Supabase...`);
-  
-  try {
-    const scParam = document.getElementById("cfgSeasonCode").value.trim();
-    let url = `${apiBase}/api/sync?code=${code}`;
-    url += scParam ? `&seasonCode=${scParam}` : `&season=${document.getElementById("cfgSeason").value.trim()}`;
-    
-    const res = await fetch(url);
-    const data = await res.json();
-    
-    if (data.success) {
-      addLog("realtime", `Synced <span class="hl">${data.gamesUpserted}</span> games to Supabase (${data.elapsed})`);
-      // Load initial data
-      await loadGames(seasonCode);
-    } else {
-      addLog("system", `Sync error: ${data.error || "Unknown error"}`);
+  function getSeasonCode() {
+    var sc = document.getElementById("cfgSeasonCode").value.trim();
+    if (sc) return sc;
+    return document.getElementById("cfgCode").value + document.getElementById("cfgSeason").value.trim();
+  }
+
+  // ============================================================
+  // SYNC: EuroLeague → Supabase via your API
+  // ============================================================
+  function syncGames() {
+    var apiBase = getApiBase();
+    if (!apiBase) { addLog("system", "Enter your API URL first."); return; }
+
+    var code = document.getElementById("cfgCode").value;
+    var seasonCode = getSeasonCode();
+    var btn = document.getElementById("syncBtn");
+
+    btn.textContent = "Syncing...";
+    btn.disabled = true;
+    addLog("system", "Syncing " + seasonCode + " from EuroLeague → Supabase...");
+
+    var scParam = document.getElementById("cfgSeasonCode").value.trim();
+    var url = apiBase + "/api/sync?code=" + code;
+    url += scParam ? ("&seasonCode=" + scParam) : ("&season=" + document.getElementById("cfgSeason").value.trim());
+
+    fetch(url)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var msg = "Synced <span class='hl'>" + (data.gamesUpserted || data.games?.upserted || "?") + "</span> games";
+          if (data.boxscores && data.boxscores !== "skipped") {
+            msg += " + <span class='hl'>" + (data.boxscores.playersUpserted || 0) + "</span> player stats";
+          }
+          msg += " (" + data.elapsed + ")";
+          addLog("realtime", msg);
+          loadGames(seasonCode);
+        } else {
+          addLog("system", "Sync error: " + (data.error || "Unknown"));
+        }
+      })
+      .catch(function(err) {
+        addLog("system", "Sync failed: " + err.message);
+      })
+      .finally(function() {
+        btn.textContent = "Sync to Supabase";
+        btn.disabled = false;
+      });
+  }
+
+  // ============================================================
+  // LOAD GAMES FROM SUPABASE
+  // ============================================================
+  function loadGames(seasonCode) {
+    if (!sbClient) { addLog("system", "Supabase not loaded. Reload the page."); return; }
+
+    sbClient
+      .from("live_games")
+      .select("*")
+      .eq("season_code", seasonCode)
+      .order("game_code", { ascending: true })
+      .then(function(result) {
+        if (result.error) {
+          addLog("system", "Load error: " + result.error.message);
+          return;
+        }
+        gameData = {};
+        (result.data || []).forEach(function(g) { gameData[g.game_code] = g; });
+        document.getElementById("statGames").textContent = Object.keys(gameData).length;
+        renderGames();
+        addLog("system", "Loaded " + Object.keys(gameData).length + " games from Supabase.");
+      });
+  }
+
+  // ============================================================
+  // REALTIME: WebSocket subscription
+  // ============================================================
+  function startRealtime() {
+    if (!sbClient) { addLog("system", "Supabase not loaded. Reload the page."); return; }
+
+    var seasonCode = getSeasonCode();
+    initAudio();
+    setConnectionState("connecting");
+    addLog("realtime", "Subscribing to <span class='rt'>WebSocket</span> for " + seasonCode + "...");
+
+    loadGames(seasonCode);
+
+    channel = sbClient
+      .channel("live-games-" + seasonCode)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "live_games", filter: "season_code=eq." + seasonCode },
+        function(payload) { handleRealtimeEvent(payload); }
+      )
+      .subscribe(function(status) {
+        if (status === "SUBSCRIBED") {
+          setConnectionState("connected");
+          addLog("realtime", "<span class='rt'>WebSocket connected</span> — listening for changes on " + seasonCode);
+        } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
+          setConnectionState("disconnected");
+          addLog("system", "WebSocket " + status.toLowerCase());
+        }
+      });
+
+    document.getElementById("startBtn").style.display = "none";
+    document.getElementById("stopBtn").style.display = "";
+  }
+
+  function stopRealtime() {
+    if (channel && sbClient) {
+      sbClient.removeChannel(channel);
+      channel = null;
     }
-  } catch (err) {
-    addLog("system", `Sync failed: ${err.message}`);
+    setConnectionState("disconnected");
+    addLog("system", "WebSocket disconnected.");
+    document.getElementById("startBtn").style.display = "";
+    document.getElementById("stopBtn").style.display = "none";
   }
-  
-  btn.textContent = "Sync to Supabase";
-  btn.disabled = false;
-}
 
-// ============================================================
-// LOAD INITIAL DATA FROM SUPABASE
-// ============================================================
-async function loadGames(seasonCode) {
-  const { data, error } = await supabase
-    .from("live_games")
-    .select("*")
-    .eq("season_code", seasonCode)
-    .order("game_code", { ascending: true });
-  
-  if (error) {
-    addLog("system", `Load error: ${error.message}`);
-    return;
+  function setConnectionState(state) {
+    var badge = document.getElementById("wsBadge");
+    var text = document.getElementById("wsBadgeText");
+    badge.className = "ws-badge " + state;
+    text.textContent = state === "connected" ? "Connected" : state === "connecting" ? "Connecting..." : "Idle";
+    document.getElementById("statConnection").textContent = state === "connected" ? "WebSocket" : "Idle";
   }
-  
-  gameData = {};
-  (data || []).forEach(g => { gameData[g.game_code] = g; });
-  
-  document.getElementById("statGames").textContent = Object.keys(gameData).length;
-  renderGames();
-  addLog("system", `Loaded ${Object.keys(gameData).length} games from Supabase.`);
-}
 
-// ============================================================
-// REALTIME: Subscribe to Supabase WebSocket
-// ============================================================
-function startRealtime() {
-  const seasonCode = getSeasonCode();
-  initAudio();
-  
-  setConnectionState("connecting");
-  addLog("realtime", `Subscribing to <span class="rt">WebSocket</span> for ${seasonCode}...`);
-  
-  // First load existing data
-  loadGames(seasonCode);
-  
-  // Subscribe to changes on live_games table filtered by season
-  channel = supabase
-    .channel(`live-games-${seasonCode}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",  // INSERT, UPDATE, DELETE
-        schema: "public",
-        table: "live_games",
-        filter: `season_code=eq.${seasonCode}`,
-      },
-      (payload) => {
-        handleRealtimeEvent(payload);
-      }
-    )
-    .subscribe((status) => {
-      if (status === "SUBSCRIBED") {
-        setConnectionState("connected");
-        addLog("realtime", `<span class="rt">WebSocket connected</span> — listening for changes on ${seasonCode}`);
-      } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
-        setConnectionState("disconnected");
-        addLog("system", `WebSocket ${status.toLowerCase()}`);
-      }
-    });
-  
-  document.getElementById("startBtn").style.display = "none";
-  document.getElementById("stopBtn").style.display = "";
-}
+  // ============================================================
+  // HANDLE REALTIME EVENTS
+  // ============================================================
+  function handleRealtimeEvent(payload) {
+    var eventType = payload.eventType;
+    var newRow = payload.new;
+    var oldRow = payload.old;
+    appStats.updates++;
 
-function stopRealtime() {
-  if (channel) {
-    supabase.removeChannel(channel);
-    channel = null;
-  }
-  setConnectionState("disconnected");
-  addLog("system", "WebSocket disconnected.");
-  
-  document.getElementById("startBtn").style.display = "";
-  document.getElementById("stopBtn").style.display = "none";
-}
+    document.getElementById("statUpdates").textContent = appStats.updates;
+    document.getElementById("statLastEvent").textContent = new Date().toLocaleTimeString();
 
-function setConnectionState(state) {
-  const badge = document.getElementById("wsBadge");
-  const text = document.getElementById("wsBadgeText");
-  const statConn = document.getElementById("statConnection");
-  
-  badge.className = `ws-badge ${state}`;
-  text.textContent = state === "connected" ? "Connected" : state === "connecting" ? "Connecting..." : "Disconnected";
-  statConn.textContent = state === "connected" ? "WebSocket" : state === "connecting" ? "Connecting" : "Idle";
-}
+    if (eventType === "UPDATE" || eventType === "INSERT") {
+      var game = newRow;
+      var prev = gameData[game.game_code];
 
-// ============================================================
-// HANDLE REALTIME EVENTS
-// ============================================================
-function handleRealtimeEvent(payload) {
-  const { eventType, new: newRow, old: oldRow } = payload;
-  stats.updates++;
-  
-  const time = new Date().toLocaleTimeString();
-  document.getElementById("statUpdates").textContent = stats.updates;
-  document.getElementById("statLastEvent").textContent = time;
-  
-  if (eventType === "UPDATE" || eventType === "INSERT") {
-    const game = newRow;
-    const prev = gameData[game.game_code];
-    
-    // Detect score changes
-    if (prev) {
-      if (game.local_score !== prev.local_score) {
-        const diff = game.local_score - prev.local_score;
-        stats.scoreChanges++;
-        addLog("score", `<span class="hl">Game ${game.game_code}</span> — ${game.local_name} scored +${diff} → ${game.local_score}-${game.road_score}`);
-        playAlert("score");
+      if (prev) {
+        if (game.local_score !== prev.local_score) {
+          var diff = game.local_score - prev.local_score;
+          appStats.scoreChanges++;
+          addLog("score", "<span class='hl'>Game " + game.game_code + "</span> — " + game.local_name + " +" + diff + " → " + game.local_score + "-" + game.road_score);
+          playAlert("score");
+        }
+        if (game.road_score !== prev.road_score) {
+          var diff2 = game.road_score - prev.road_score;
+          appStats.scoreChanges++;
+          addLog("score", "<span class='hl'>Game " + game.game_code + "</span> — " + game.road_name + " +" + diff2 + " → " + game.local_score + "-" + game.road_score);
+          playAlert("score");
+        }
+        if (game.game_status !== prev.game_status) {
+          addLog("status", "<span class='hl'>Game " + game.game_code + "</span> — " + prev.game_status + " → " + game.game_status);
+        }
+      } else {
+        addLog("realtime", "Game " + game.game_code + ": " + (game.local_name || "?") + " vs " + (game.road_name || "?") + " added");
       }
-      if (game.road_score !== prev.road_score) {
-        const diff = game.road_score - prev.road_score;
-        stats.scoreChanges++;
-        addLog("score", `<span class="hl">Game ${game.game_code}</span> — ${game.road_name} scored +${diff} → ${game.local_score}-${game.road_score}`);
-        playAlert("score");
-      }
-      if (game.game_status !== prev.game_status) {
-        addLog("status", `<span class="hl">Game ${game.game_code}</span> — ${prev.game_status} → ${game.game_status}`);
-      }
-    } else {
-      addLog("realtime", `Game ${game.game_code}: ${game.local_name} vs ${game.road_name} added`);
-    }
-    
-    // Update local state
-    gameData[game.game_code] = game;
-    document.getElementById("statScoreChanges").textContent = stats.scoreChanges;
-    
-    // Re-render with highlight
-    renderGames(game.game_code);
-    
-  } else if (eventType === "DELETE") {
-    const code = oldRow?.game_code;
-    if (code && gameData[code]) {
-      delete gameData[code];
-      addLog("system", `Game ${code} removed.`);
+
+      gameData[game.game_code] = game;
+      document.getElementById("statScoreChanges").textContent = appStats.scoreChanges;
+      renderGames(game.game_code);
+
+    } else if (eventType === "DELETE" && oldRow) {
+      delete gameData[oldRow.game_code];
+      addLog("system", "Game " + oldRow.game_code + " removed.");
       renderGames();
     }
   }
-}
 
-// ============================================================
-// RENDER
-// ============================================================
-function renderGames(changedGameCode = null) {
-  const grid = document.getElementById("gameGrid");
-  const games = Object.values(gameData).sort((a, b) => a.game_code - b.game_code);
-  
-  if (games.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><p>No games loaded. Click Sync first.</p></div>';
-    return;
+  // ============================================================
+  // RENDER GAMES
+  // ============================================================
+  function renderGames(changedGameCode) {
+    var grid = document.getElementById("gameGrid");
+    var games = Object.values(gameData).sort(function(a, b) { return a.game_code - b.game_code; });
+
+    if (games.length === 0) {
+      grid.innerHTML = '<div class="empty-state"><p>No games loaded. Click Sync first.</p></div>';
+      return;
+    }
+
+    document.getElementById("statGames").textContent = games.length;
+
+    grid.innerHTML = games.map(function(g) {
+      var isChanged = g.game_code === changedGameCode;
+      var isLive = g.game_status === "Live" || g.game_status === "Playing";
+      var isFinished = g.played || g.game_status === "Played";
+      var statusClass = isLive ? "live" : isFinished ? "finished" : "upcoming";
+      var statusText = isLive ? "LIVE" : isFinished ? "FINAL" : (g.game_status || "TBD").toUpperCase();
+
+      var homeW = g.local_score > g.road_score;
+      var awayW = g.road_score > g.local_score;
+
+      // Quarter scores
+      var homeQ = [g.local_q1, g.local_q2, g.local_q3, g.local_q4].filter(function(v) { return v != null; });
+      var awayQ = [g.road_q1, g.road_q2, g.road_q3, g.road_q4].filter(function(v) { return v != null; });
+
+      var partialsHtml = "";
+      if (homeQ.length > 0) {
+        partialsHtml = '<div class="quarter-scores">';
+        for (var i = 0; i < homeQ.length; i++) {
+          var ql = i < 4 ? "Q" + (i + 1) : "OT" + (i - 3);
+          partialsHtml += '<div class="q-score"><span class="q-label">' + ql + '</span><span class="q-val">' + (homeQ[i] || "-") + "-" + (awayQ[i] || "-") + '</span></div>';
+        }
+        partialsHtml += '<div class="q-score"><span class="q-label">T</span><span class="q-val" style="font-weight:700">' + g.local_score + "-" + g.road_score + '</span></div></div>';
+      }
+
+      var dateStr = "";
+      if (g.game_date) {
+        try { dateStr = new Date(g.game_date).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); } catch(e) {}
+      }
+
+      return '<div class="game-card' + (isChanged ? " changed" : "") + (isLive ? " live" : "") + '" data-game="' + g.game_code + '">' +
+        '<div class="game-card-header">' +
+          '<span class="game-number">Game ' + g.game_code + (g.round_alias ? " · " + g.round_alias : "") + '</span>' +
+          '<div style="display:flex;align-items:center;gap:0.5rem">' +
+            (dateStr ? '<span style="font-size:0.6rem;color:var(--muted)">' + dateStr + '</span>' : '') +
+            '<span class="game-status ' + statusClass + '">' + statusText + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="game-body">' +
+          '<div class="team-row">' +
+            '<div class="team-info">' +
+              (g.local_logo ? '<img class="team-logo" src="' + g.local_logo + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+              '<div><div class="team-name">' + (g.local_name || "TBD") + '</div><div class="team-code">' + (g.local_tv_code || g.local_code || "") + '</div></div>' +
+            '</div>' +
+            '<div class="team-score' + (isChanged ? " flash" : "") + (homeW ? " winning" : awayW ? " losing" : "") + '">' + (g.local_score != null ? g.local_score : "-") + '</div>' +
+          '</div>' +
+          '<div class="team-row">' +
+            '<div class="team-info">' +
+              (g.road_logo ? '<img class="team-logo" src="' + g.road_logo + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+              '<div><div class="team-name">' + (g.road_name || "TBD") + '</div><div class="team-code">' + (g.road_tv_code || g.road_code || "") + '</div></div>' +
+            '</div>' +
+            '<div class="team-score' + (isChanged ? " flash" : "") + (awayW ? " winning" : homeW ? " losing" : "") + '">' + (g.road_score != null ? g.road_score : "-") + '</div>' +
+          '</div>' +
+        '</div>' +
+        partialsHtml +
+        (g.venue_name ? '<div class="venue-bar">' + g.venue_name + (g.audience ? " · " + Number(g.audience).toLocaleString() + " fans" : "") + '</div>' : '') +
+      '</div>';
+    }).join("");
+
+    if (changedGameCode) {
+      setTimeout(function() {
+        document.querySelectorAll(".flash").forEach(function(el) { el.classList.remove("flash"); });
+        document.querySelectorAll(".game-card.changed").forEach(function(el) { el.classList.remove("changed"); });
+      }, 2500);
+    }
   }
-  
-  document.getElementById("statGames").textContent = games.length;
-  
-  grid.innerHTML = games.map(g => {
-    const isChanged = g.game_code === changedGameCode;
-    const isLive = g.game_status === "Live" || g.game_status === "Playing";
-    const isFinished = g.played || g.game_status === "Played";
-    const statusClass = isLive ? "live" : isFinished ? "finished" : "upcoming";
-    const statusText = isLive ? "LIVE" : isFinished ? "FINAL" : (g.game_status || "TBD").toUpperCase();
-    
-    const homeW = g.local_score > g.road_score;
-    const awayW = g.road_score > g.local_score;
-    
-    // Partials
-    const homeQ = [g.local_q1, g.local_q2, g.local_q3, g.local_q4].filter(v => v != null);
-    const awayQ = [g.road_q1, g.road_q2, g.road_q3, g.road_q4].filter(v => v != null);
-    // Add OT periods
-    if (g.local_ot && typeof g.local_ot === "object") {
-      Object.values(g.local_ot).forEach(v => { if (v != null) homeQ.push(v); });
-    }
-    if (g.road_ot && typeof g.road_ot === "object") {
-      Object.values(g.road_ot).forEach(v => { if (v != null) awayQ.push(v); });
-    }
-    
-    let partialsHtml = "";
-    if (homeQ.length > 0) {
-      const labels = homeQ.map((_, i) => i < 4 ? `Q${i+1}` : `OT${i-3}`);
-      partialsHtml = `<div class="quarter-scores">
-        ${labels.map((l, i) => `<div class="q-score"><span class="q-label">${l}</span><span class="q-val">${homeQ[i]??"-"}-${awayQ[i]??"-"}</span></div>`).join("")}
-        <div class="q-score"><span class="q-label">T</span><span class="q-val" style="font-weight:700">${g.local_score}-${g.road_score}</span></div>
-      </div>`;
-    }
-    
-    const dateStr = g.game_date ? new Date(g.game_date).toLocaleString("en-GB", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" }) : "";
-    
-    return `
-      <div class="game-card ${isChanged ? 'changed' : ''} ${isLive ? 'live' : ''}" data-game="${g.game_code}">
-        <div class="game-card-header">
-          <span class="game-number">Game ${g.game_code} ${g.round_alias ? '· '+g.round_alias : ''}</span>
-          <div style="display:flex;align-items:center;gap:0.5rem">
-            ${dateStr ? `<span style="font-size:0.6rem;color:var(--muted)">${dateStr}</span>` : ""}
-            <span class="game-status ${statusClass}">${statusText}</span>
-          </div>
-        </div>
-        <div class="game-body">
-          <div class="team-row">
-            <div class="team-info">
-              ${g.local_logo ? `<img class="team-logo" src="${g.local_logo}" alt="" onerror="this.style.display='none'">` : ""}
-              <div>
-                <div class="team-name">${g.local_name || "TBD"}</div>
-                <div class="team-code">${g.local_tv_code || g.local_code || ""}</div>
-              </div>
-            </div>
-            <div class="team-score ${isChanged?'flash':''} ${homeW?'winning':awayW?'losing':''}">${g.local_score}</div>
-          </div>
-          <div class="team-row">
-            <div class="team-info">
-              ${g.road_logo ? `<img class="team-logo" src="${g.road_logo}" alt="" onerror="this.style.display='none'">` : ""}
-              <div>
-                <div class="team-name">${g.road_name || "TBD"}</div>
-                <div class="team-code">${g.road_tv_code || g.road_code || ""}</div>
-              </div>
-            </div>
-            <div class="team-score ${isChanged?'flash':''} ${awayW?'winning':homeW?'losing':''}">${g.road_score}</div>
-          </div>
-        </div>
-        ${partialsHtml}
-        ${g.venue_name ? `<div class="venue-bar">${g.venue_name}${g.audience ? ' · '+g.audience.toLocaleString()+' fans' : ''}</div>` : ""}
-      </div>`;
-  }).join("");
-  
-  // Clear highlight after animation
-  if (changedGameCode) {
-    setTimeout(() => {
-      document.querySelectorAll(".flash").forEach(el => el.classList.remove("flash"));
-      document.querySelectorAll(".game-card.changed").forEach(el => el.classList.remove("changed"));
-    }, 2500);
-  }
-}
 
-// ============================================================
-// EVENT LOG
-// ============================================================
-function addLog(type, text) {
-  const list = document.getElementById("eventList");
-  const time = new Date().toLocaleTimeString();
-  const item = document.createElement("div");
-  item.className = "event-item";
-  item.innerHTML = `<span class="event-time">${time}</span><div class="event-dot ${type}"></div><span class="event-text">${text}</span>`;
-  list.prepend(item);
-  while (list.children.length > 150) list.removeChild(list.lastChild);
-}
-function clearLog() {
-  document.getElementById("eventList").innerHTML = "";
-  addLog("system", "Log cleared.");
-}
+  // ============================================================
+  // INIT
+  // ============================================================
 
-// ============================================================
-// INIT
-// ============================================================
-(function() {
-  const host = window.location.hostname;
-  if (host.includes("netlify.app") || host === "localhost") {
+  // Auto-detect API URL when deployed to Netlify
+  var host = window.location.hostname;
+  if (host.indexOf("netlify.app") !== -1 || host === "localhost") {
     document.getElementById("apiBase").value = window.location.origin;
   }
+
+  // Init Supabase client from the window.supabase global
+  if (window.supabase && window.supabase.createClient) {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    addLog("system", "Supabase ready. Sync games, then Connect for WebSocket updates.");
+  } else {
+    addLog("system", "Error: Supabase library failed to load. Check your connection and reload.");
+  }
+
+  // Wire up buttons via addEventListener (no inline onclick)
+  document.getElementById("syncBtn").addEventListener("click", syncGames);
+  document.getElementById("startBtn").addEventListener("click", startRealtime);
+  document.getElementById("stopBtn").addEventListener("click", stopRealtime);
+  document.getElementById("clearLogBtn").addEventListener("click", function() {
+    document.getElementById("eventList").innerHTML = "";
+    addLog("system", "Log cleared.");
+  });
+  document.getElementById("soundToggle").addEventListener("click", function() {
+    initAudio();
+    soundEnabled = !soundEnabled;
+    document.getElementById("soundToggle").classList.toggle("active", soundEnabled);
+  });
+
 })();
 </script>
 </body>
