@@ -112,6 +112,26 @@
 
     .mode-label { font-size:0.55rem; padding:0.2rem 0.5rem; border-radius:3px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; background:rgba(139,92,246,0.15); color:var(--purple); }
 
+    .game-card { cursor:pointer; }
+    .game-card:hover { border-color:rgba(139,92,246,0.3); }
+
+    .boxscore-panel { border-top:1px solid var(--border); background:rgba(0,0,0,0.25); padding:0.75rem; animation:fadeIn 0.3s ease; overflow-x:auto; }
+    .boxscore-panel.loading { text-align:center; padding:1.5rem; color:var(--muted); font-size:0.7rem; }
+    .bs-team-header { font-size:0.7rem; font-weight:700; color:var(--text); padding:0.4rem 0 0.25rem; display:flex; align-items:center; gap:0.5rem; }
+    .bs-team-header img { width:18px; height:18px; border-radius:3px; }
+    .bs-team-header .bs-team-score { color:var(--accent); font-family:var(--mono); }
+    .bs-table { width:100%; border-collapse:collapse; font-size:0.6rem; margin-bottom:0.75rem; }
+    .bs-table th { color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; padding:0.25rem 0.35rem; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
+    .bs-table th:first-child { text-align:left; min-width:100px; }
+    .bs-table td { padding:0.25rem 0.35rem; text-align:right; font-family:var(--mono); font-size:0.6rem; border-bottom:1px solid rgba(30,30,48,0.5); }
+    .bs-table td:first-child { text-align:left; font-family:var(--sans); font-weight:500; color:var(--text); }
+    .bs-table tr.starter td:first-child { color:#fff; }
+    .bs-table tr:hover td { background:rgba(255,255,255,0.02); }
+    .bs-table .bs-hi { color:var(--accent); font-weight:700; }
+    .bs-table .bs-zero { color:rgba(90,90,117,0.4); }
+    .bs-close { float:right; background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.65rem; font-family:var(--sans); padding:0.2rem 0.4rem; border-radius:3px; }
+    .bs-close:hover { color:var(--text); background:rgba(255,255,255,0.05); }
+
     @media (max-width:640px) {
       .config-bar { padding:0.5rem 1rem; gap:0.5rem; }
       .main { padding:1rem; }
@@ -510,6 +530,117 @@
   }
 
   // ============================================================
+  // BOXSCORE: Click game → expand player stats
+  // ============================================================
+  var openBoxscore = null; // currently open game_code
+
+  function toggleBoxscore(gameCode) {
+    // Close if already open
+    if (openBoxscore === gameCode) {
+      var existing = document.querySelector('.boxscore-panel[data-bs="' + gameCode + '"]');
+      if (existing) existing.remove();
+      openBoxscore = null;
+      return;
+    }
+    // Close any other open boxscore
+    document.querySelectorAll(".boxscore-panel").forEach(function(el) { el.remove(); });
+    openBoxscore = gameCode;
+
+    var card = document.querySelector('.game-card[data-game="' + gameCode + '"]');
+    if (!card) return;
+
+    var panel = document.createElement("div");
+    panel.className = "boxscore-panel loading";
+    panel.setAttribute("data-bs", gameCode);
+    panel.textContent = "Loading boxscore...";
+    card.appendChild(panel);
+
+    fetchBoxscore(gameCode, panel);
+  }
+
+  function fetchBoxscore(gameCode, panel) {
+    if (!sbClient) { panel.textContent = "Supabase not loaded."; return; }
+
+    var sc = getSeasonCode();
+    sbClient
+      .from("player_stats")
+      .select("*")
+      .eq("season_code", sc)
+      .eq("game_code", gameCode)
+      .order("is_starter", { ascending: false })
+      .order("minutes_decimal", { ascending: false })
+      .then(function(result) {
+        if (result.error) {
+          panel.textContent = "Error: " + result.error.message;
+          panel.className = "boxscore-panel loading";
+          return;
+        }
+        if (!result.data || result.data.length === 0) {
+          panel.textContent = "No player stats for this game. Sync with boxscores first.";
+          panel.className = "boxscore-panel loading";
+          return;
+        }
+        renderBoxscore(panel, result.data, gameCode);
+      });
+  }
+
+  function renderBoxscore(panel, players, gameCode) {
+    var g = gameData[gameCode];
+    var local = players.filter(function(p) { return p.is_local === true; });
+    var road = players.filter(function(p) { return p.is_local === false; });
+
+    panel.className = "boxscore-panel";
+    panel.innerHTML = '<button class="bs-close" data-bsclose="' + gameCode + '">Close</button>' +
+      renderTeamTable(local, g ? g.local_name : "Home", g ? g.local_logo : null, g ? g.local_score : "") +
+      renderTeamTable(road, g ? g.road_name : "Away", g ? g.road_logo : null, g ? g.road_score : "");
+  }
+
+  function renderTeamTable(players, teamName, logo, score) {
+    if (players.length === 0) return "";
+
+    // Find game highs for highlighting
+    var maxPts = 0, maxReb = 0, maxAst = 0, maxPir = 0;
+    players.forEach(function(p) {
+      if (p.points > maxPts) maxPts = p.points;
+      if (p.total_rebounds > maxReb) maxReb = p.total_rebounds;
+      if (p.assists > maxAst) maxAst = p.assists;
+      if (p.pir > maxPir) maxPir = p.pir;
+    });
+
+    var html = '<div class="bs-team-header">' +
+      (logo ? '<img src="' + logo + '" alt="">' : '') +
+      '<span>' + teamName + '</span>' +
+      '<span class="bs-team-score">' + score + '</span>' +
+    '</div>';
+
+    html += '<table class="bs-table"><thead><tr>' +
+      '<th>Player</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th>' +
+      '<th>STL</th><th>TO</th><th>FG</th><th>3PT</th><th>FT</th><th>PIR</th>' +
+    '</tr></thead><tbody>';
+
+    players.forEach(function(p) {
+      var starter = p.is_starter ? " starter" : "";
+      html += '<tr class="' + starter + '">' +
+        '<td>' + (p.is_starter ? "* " : "") + (p.player_name || p.player_alias || "?") +
+          (p.dorsal ? ' <span style="color:var(--muted);font-size:0.5rem">#' + p.dorsal + '</span>' : '') + '</td>' +
+        '<td>' + (p.minutes || "-") + '</td>' +
+        '<td class="' + (p.points >= maxPts && maxPts > 0 ? "bs-hi" : p.points === 0 ? "bs-zero" : "") + '">' + p.points + '</td>' +
+        '<td class="' + (p.total_rebounds >= maxReb && maxReb > 0 ? "bs-hi" : p.total_rebounds === 0 ? "bs-zero" : "") + '">' + p.total_rebounds + '</td>' +
+        '<td class="' + (p.assists >= maxAst && maxAst > 0 ? "bs-hi" : p.assists === 0 ? "bs-zero" : "") + '">' + p.assists + '</td>' +
+        '<td class="' + (p.steals === 0 ? "bs-zero" : "") + '">' + p.steals + '</td>' +
+        '<td class="' + (p.turnovers === 0 ? "bs-zero" : "") + '">' + p.turnovers + '</td>' +
+        '<td>' + p.field_goals_made + '/' + p.field_goals_attempted + '</td>' +
+        '<td>' + p.three_points_made + '/' + p.three_points_attempted + '</td>' +
+        '<td>' + p.free_throws_made + '/' + p.free_throws_attempted + '</td>' +
+        '<td class="' + (p.pir >= maxPir && maxPir > 0 ? "bs-hi" : p.pir <= 0 ? "bs-zero" : "") + '">' + p.pir + '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table>';
+    return html;
+  }
+
+  // ============================================================
   // INIT
   // ============================================================
 
@@ -539,6 +670,26 @@
     initAudio();
     soundEnabled = !soundEnabled;
     document.getElementById("soundToggle").classList.toggle("active", soundEnabled);
+  });
+
+  // Click delegation for game cards → boxscore
+  document.getElementById("gameGrid").addEventListener("click", function(e) {
+    // Close button inside boxscore
+    var closeBtn = e.target.closest("[data-bsclose]");
+    if (closeBtn) {
+      var gc = closeBtn.getAttribute("data-bsclose");
+      var panel = document.querySelector('.boxscore-panel[data-bs="' + gc + '"]');
+      if (panel) panel.remove();
+      openBoxscore = null;
+      return;
+    }
+    // Click on game card (but not inside boxscore panel)
+    if (e.target.closest(".boxscore-panel")) return;
+    var card = e.target.closest(".game-card");
+    if (card) {
+      var gameCode = parseInt(card.getAttribute("data-game"));
+      if (gameCode) toggleBoxscore(gameCode);
+    }
   });
 
 })();
