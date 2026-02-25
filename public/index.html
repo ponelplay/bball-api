@@ -399,10 +399,18 @@ const ENDPOINTS = [
     params: [],
   },
   {
-    path: "/api/game",
-    desc: "Game data",
+    path: "/api/games",
+    desc: "All season games",
     params: [
-      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "season", default: "2025", placeholder: "2025" },
+      { key: "code", default: "E", placeholder: "E or U" },
+    ],
+  },
+  {
+    path: "/api/game",
+    desc: "Single game",
+    params: [
+      { key: "season", default: "2025", placeholder: "2025" },
       { key: "code", default: "E", placeholder: "E or U" },
       { key: "gameNumber", default: "", placeholder: "1, 2, 3...", required: true },
     ],
@@ -411,7 +419,7 @@ const ENDPOINTS = [
     path: "/api/boxscore",
     desc: "Box score",
     params: [
-      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "season", default: "2025", placeholder: "2025" },
       { key: "code", default: "E", placeholder: "E or U" },
       { key: "gameNumber", default: "", placeholder: "Required", required: true },
     ],
@@ -420,7 +428,7 @@ const ENDPOINTS = [
     path: "/api/pbp",
     desc: "Play-by-play",
     params: [
-      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "season", default: "2025", placeholder: "2025" },
       { key: "code", default: "E", placeholder: "E or U" },
       { key: "gameNumber", default: "", placeholder: "Required", required: true },
     ],
@@ -429,7 +437,7 @@ const ENDPOINTS = [
     path: "/api/standings",
     desc: "Standings",
     params: [
-      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "season", default: "2025", placeholder: "2025" },
       { key: "code", default: "E", placeholder: "E or U" },
     ],
   },
@@ -437,7 +445,7 @@ const ENDPOINTS = [
     path: "/api/rounds",
     desc: "Round data",
     params: [
-      { key: "season", default: "2024", placeholder: "2024" },
+      { key: "season", default: "2025", placeholder: "2025" },
       { key: "code", default: "E", placeholder: "E or U" },
       { key: "round", default: "", placeholder: "Optional" },
     ],

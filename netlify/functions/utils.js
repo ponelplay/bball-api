@@ -3,8 +3,8 @@
 // Used by all Netlify Functions for consistent behavior
 // ============================================================
 
-// EuroLeague API base
-export const EURO_API = "https://api-live.euroleague.net/v3";
+// EuroLeague API base — v2, not v3
+export const EURO_API = "https://api-live.euroleague.net/v2";
 
 // CORS headers — allows any of your tools to call this API
 export const corsHeaders = {
@@ -36,6 +36,15 @@ export function handleCors(req) {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
   return null;
+}
+
+// ============================================================
+// BUILD SEASON CODE
+// EuroLeague uses format like "E2025" or "U2025"
+// (competition code + year)
+// ============================================================
+export function buildSeasonCode(code = "E", season = "2025") {
+  return `${code.toUpperCase()}${season}`;
 }
 
 // ============================================================

@@ -1,8 +1,11 @@
 // ============================================================
-// /api/standings — Competition Standings
+// /api/games — All Games for a Season
 // ============================================================
 // Usage:
-//   /api/standings?season=2025&code=E
+//   /api/games?season=2025&code=E
+//
+// This is the endpoint Marc confirmed works:
+//   https://api-live.euroleague.net/v2/competitions/E/seasons/E2025/games
 // ============================================================
 
 import {
@@ -15,7 +18,7 @@ import {
   buildSeasonCode,
 } from "./utils.js";
 
-const CACHE_TTL = 300;
+const CACHE_TTL = 300; // 5 min — full game list doesn't change often
 
 export default async (req) => {
   const corsRes = handleCors(req);
@@ -25,14 +28,14 @@ export default async (req) => {
     const { season = "2025", code = "E" } = getParams(req);
 
     const seasonCode = buildSeasonCode(code, season);
-    const cacheKey = `standings:${seasonCode}`;
+    const cacheKey = `games:${seasonCode}`;
     const cached = cache.get(cacheKey);
     if (cached) {
       return jsonResponse(cached, 200, { "X-Cache": "HIT" });
     }
 
     const data = await euroFetch(
-      `/competitions/${code.toUpperCase()}/seasons/${seasonCode}/standings`
+      `/competitions/${code.toUpperCase()}/seasons/${seasonCode}/games`
     );
 
     const enriched = {
@@ -47,6 +50,6 @@ export default async (req) => {
     cache.set(cacheKey, enriched, CACHE_TTL);
     return jsonResponse(enriched, 200, { "X-Cache": "MISS" });
   } catch (err) {
-    return errorResponse(`Failed to fetch standings: ${err.message}`, 502);
+    return errorResponse(`Failed to fetch games: ${err.message}`, 502);
   }
 };

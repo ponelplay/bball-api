@@ -1,18 +1,13 @@
 // ============================================================
 // /api/health — API Health Check
 // ============================================================
-// Usage:
-//   /api/health
-//
-// Returns: API status, available endpoints, cache stats
-// Useful for monitoring and as a quick reference
-// ============================================================
 
 import { handleCors, jsonResponse, cache } from "./utils.js";
 
 const ENDPOINTS = [
   { path: "/api/health", description: "This endpoint — API status and info" },
-  { path: "/api/game", description: "Game data", params: "season, code, gameNumber*" },
+  { path: "/api/games", description: "All games for a season", params: "season, code" },
+  { path: "/api/game", description: "Single game data", params: "season, code, gameNumber*" },
   { path: "/api/boxscore", description: "Game box score", params: "season, code, gameNumber*" },
   { path: "/api/pbp", description: "Play-by-play", params: "season, code, gameNumber*" },
   { path: "/api/standings", description: "Competition standings", params: "season, code" },
@@ -27,11 +22,13 @@ export default async (req) => {
   return jsonResponse({
     status: "ok",
     name: "bball-api",
-    version: "1.0.0",
+    version: "1.1.0",
     description: "Marc's Basketball Data API",
+    apiBase: "https://api-live.euroleague.net/v2",
+    seasonFormat: "E2025 (competition code + year)",
     timestamp: new Date().toISOString(),
     endpoints: ENDPOINTS,
     cache: cache.stats(),
-    notes: "Params marked with * are required. Default season=2024, code=E.",
+    notes: "Params marked with * are required. Default season=2025, code=E.",
   });
 };
